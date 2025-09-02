@@ -71,11 +71,14 @@ for file in files:
 
 # Show results in GitHub Checks output
 if comments:
-    for filename, suggestion in comments:
-        # ✅ GitHub annotation (appears in Checks tab)
-        print(f"::notice file={filename}::💡 AI Suggestion: {suggestion}")
-elif quota_exceeded:
-    # ✅ Warning annotation if quota is exceeded
-    print("::warning::⚠️ AI suggestions skipped because the OpenAI API quota has been exceeded.")
+    body = "\n\n".join(comments)
+
+    # Post a single comment on PR (optional, keep if you want both)
+    pr.create_issue_comment(body)
+
+    # Save suggestions for GitHub summary
+    with open("suggestions.md", "w", encoding="utf-8") as f:
+        f.write(body)
 else:
-    print("::notice::No AI suggestions for this PR.")
+    with open("suggestions.md", "w", encoding="utf-8") as f:
+        f.write("✅ No AI suggestions. Your code looks good!")
