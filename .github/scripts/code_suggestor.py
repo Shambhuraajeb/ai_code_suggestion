@@ -2,19 +2,28 @@ import os
 import openai
 from github import Github
 
+# Validate environment variables
+required_env_vars = ["GITHUB_TOKEN", "OPENAI_API_KEY", "GITHUB_REPOSITORY", "GITHUB_REF"]
+for var in required_env_vars:
+    if not os.getenv(var):
+        raise EnvironmentError(f"Missing required environment variable: {var}")
+
 # Load tokens
 github_token = os.getenv("GITHUB_TOKEN")
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # Connect to GitHub
 repo_name = os.getenv("GITHUB_REPOSITORY")
-pr_number = os.getenv("GITHUB_REF").split("/")[-2]  # Extract PR number from ref if available
+try:
+    pr_number = int(os.getenv("GITHUB_REF").split("/")[-1])  # Extract PR number from ref
+except (IndexError, ValueError):
+    raise ValueError("Failed to extract PR number from GITHUB_REF.")
 
 g = Github(github_token)
 repo = g.get_repo(repo_name)
 
 # Get PR details
-pr = repo.get_pull(int(pr_number))
+pr = repo.get_pull(pr_number)
 files = pr.get_files()
 
 comments = []
@@ -32,7 +41,7 @@ for file in files:
 
         try:
             response = openai.ChatCompletion.create(
-                model="gpt-4o-mini",
+                model="gpt-4",  # Use a valid OpenAI model name
                 messages=[{"role": "system", "content": "You are a senior code reviewer."},
                           {"role": "user", "content": prompt}],
                 max_tokens=400
