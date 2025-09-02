@@ -30,12 +30,13 @@ pr = repo.get_pull(pr_number)
 files = pr.get_files()
 
 comments = []
+quota_exceeded = False
 
 # Analyze each file change
 for file in files:
-    print(f"Processing file: {file.filename}")  # Debug log for filename
+    print(f"Processing file: {file.filename}")
     patch = file.patch if len(file.patch) <= 3000 else file.patch[:3000] + "\n... [truncated]"
-    print(f"Patch for {file.filename}:\n{patch}")  # Debug log for patch content
+    print(f"Patch for {file.filename}:\n{patch}")
 
     prompt = f"""
     You are a code reviewer. Suggest improvements for the following code:
@@ -46,9 +47,9 @@ for file in files:
     """
 
     try:
-        # ✅ New API call for openai>=1.0.0
+        # Updated API call for openai>=1.0.0
         response = openai.chat.completions.create(
-            model="gpt-4o-mini",  # can also use "gpt-4o", "gpt-4.1", etc.
+            model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "You are a senior code reviewer."},
                 {"role": "user", "content": prompt},
@@ -57,22 +58,24 @@ for file in files:
         )
         suggestion = response.choices[0].message.content
         print(f"Suggestion for {file.filename}:\n{suggestion}")
-        comments.append(f"### 💡 AI Suggestion for `{file.filename}`\n{suggestion}")
+        comments.append((file.filename, suggestion))
 
-    except openai.APIError as e:  # Correct exception for new SDK
-        print(f"⚠️ OpenAI API error analyzing `{file.filename}`: {e}")
+    except openai.APIError as e:
+        if "insufficient_quota" in str(e):
+            print(f"⚠️ OpenAI quota exceeded while analyzing `{file.filename}`")
+            quota_exceeded = True
+        else:
+            print(f"⚠️ OpenAI API error analyzing `{file.filename}`: {e}")
     except Exception as e:
         print(f"⚠️ Unexpected error analyzing `{file.filename}`: {e}")
 
-# Post a single comment on PR
+# Show results in GitHub Checks output
 if comments:
-    body = "\n\n".join(comments)
-    try:
-        print("Posting the following comment to the PR:")
-        print(body)
-        pr.create_issue_comment(body)
-        print("Comment successfully posted to the PR.")
-    except Exception as e:
-        print(f"⚠️ Failed to post comment to the PR: {e}")
+    for filename, suggestion in comments:
+        # ✅ GitHub annotation (appears in Checks tab)
+        print(f"::notice file={filename}::💡 AI Suggestion: {suggestion}")
+elif quota_exceeded:
+    # ✅ Warning annotation if quota is exceeded
+    print("::warning::⚠️ AI suggestions skipped because the OpenAI API quota has been exceeded.")
 else:
-    print("No comments to post.")
+    print("::notice::No AI suggestions for this PR.")
