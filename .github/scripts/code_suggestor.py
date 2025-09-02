@@ -34,12 +34,15 @@ comments = []
 # Analyze each file change
 for file in files:
     if file.filename.endswith((".py", ".js", ".ts", ".java", ".cpp", ".vue")):  # Only suggest for code files
+        # Truncate patch if it exceeds 3000 characters to avoid token limit issues
+        patch = file.patch if len(file.patch) <= 3000 else file.patch[:3000] + "\n... [truncated]"
+
         prompt = f"""
         You are a code reviewer. Suggest improvements for the following code:
 
         Filename: {file.filename}
         Patch:
-        {file.patch}
+        {patch}
         """
 
         try:
@@ -55,8 +58,10 @@ for file in files:
             suggestion = response["choices"][0]["message"]["content"]
             comments.append(f"### 💡 AI Suggestion for `{file.filename}`\n{suggestion}")
 
+        except openai.error.OpenAIError as e:
+            comments.append(f"⚠️ OpenAI API error analyzing `{file.filename}`: {e}")
         except Exception as e:
-            comments.append(f"⚠️ Error analyzing {file.filename}: {e}")
+            comments.append(f"⚠️ Unexpected error analyzing `{file.filename}`: {e}")
 
 # Post a single comment on PR
 if comments:
