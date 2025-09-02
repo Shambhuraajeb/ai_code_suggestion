@@ -76,6 +76,6 @@ if comments:
         print("Ensure the GITHUB_TOKEN has write permissions and the PR is valid.")
 else:
     print("No comments to post.")
-        print("Ensure the GITHUB_TOKEN has write permissions and the PR is valid.")
+    print("Ensure the GITHUB_TOKEN has write permissions and the PR is valid.")
 else:
     print("No comments to post.")
