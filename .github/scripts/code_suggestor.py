@@ -1,0 +1,50 @@
+import os
+import openai
+from github import Github
+
+# Load tokens
+github_token = os.getenv("GITHUB_TOKEN")
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
+# Connect to GitHub
+repo_name = os.getenv("GITHUB_REPOSITORY")
+pr_number = os.getenv("GITHUB_REF").split("/")[-2]  # Extract PR number from ref if available
+
+g = Github(github_token)
+repo = g.get_repo(repo_name)
+
+# Get PR details
+pr = repo.get_pull(int(pr_number))
+files = pr.get_files()
+
+comments = []
+
+# Analyze each file change
+for file in files:
+    if file.filename.endswith((".py", ".js", ".ts", ".java", ".cpp", ".vue")):  # Only suggest for code files
+        prompt = f"""
+        You are a code reviewer. Suggest improvements for the following code:
+
+        Filename: {file.filename}
+        Patch:
+        {file.patch}
+        """
+
+        try:
+            response = openai.ChatCompletion.create(
+                model="gpt-4o-mini",
+                messages=[{"role": "system", "content": "You are a senior code reviewer."},
+                          {"role": "user", "content": prompt}],
+                max_tokens=400
+            )
+
+            suggestion = response["choices"][0]["message"]["content"]
+            comments.append(f"### 💡 AI Suggestion for `{file.filename}`\n{suggestion}")
+
+        except Exception as e:
+            comments.append(f"⚠️ Error analyzing {file.filename}: {e}")
+
+# Post a single comment on PR
+if comments:
+    body = "\n\n".join(comments)
+    pr.create_issue_comment(body)
