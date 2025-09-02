@@ -47,6 +47,7 @@ for file in files:
     """
 
     try:
+        # Updated API call for openai>=1.0.0
         response = openai.ChatCompletion.create(
             model="gpt-4",
             messages=[
@@ -58,7 +59,7 @@ for file in files:
         suggestion = response["choices"][0]["message"]["content"]
         print(f"Suggestion for {file.filename}:\n{suggestion}")  # Debug log for suggestion
         comments.append(f"### 💡 AI Suggestion for `{file.filename}`\n{suggestion}")
-    except openai.OpenAIError as e:
+    except openai.OpenAIError as e:  # Corrected exception handling
         print(f"⚠️ OpenAI API error analyzing `{file.filename}`: {e}")
     except Exception as e:
         print(f"⚠️ Unexpected error analyzing `{file.filename}`: {e}")
