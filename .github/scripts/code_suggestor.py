@@ -35,8 +35,11 @@ quota_exceeded = False
 # Analyze each file change
 for file in files:
     print(f"Processing file: {file.filename}")
-    patch = file.patch if len(file.patch) <= 3000 else file.patch[:3000] + "\n... [truncated]"
+    patch = file.patch if file.patch and len(file.patch) <= 3000 else (file.patch[:3000] + "\n... [truncated]" if file.patch else "")
     print(f"Patch for {file.filename}:\n{patch}")
+
+    if not patch:
+        continue
 
     prompt = f"""
     You are a code reviewer. Suggest improvements for the following code:
@@ -58,7 +61,9 @@ for file in files:
         )
         suggestion = response.choices[0].message.content
         print(f"Suggestion for {file.filename}:\n{suggestion}")
-        comments.append((file.filename, suggestion))
+
+        # Append formatted markdown string, not tuple
+        comments.append(f"### 💡 Suggestions for `{file.filename}`\n{suggestion}")
 
     except openai.APIError as e:
         if "insufficient_quota" in str(e):
@@ -73,12 +78,19 @@ for file in files:
 if comments:
     body = "\n\n".join(comments)
 
-    # Post a single comment on PR (optional, keep if you want both)
-    pr.create_issue_comment(body)
+    # Post a single PR comment
+    try:
+        pr.create_issue_comment(body)
+    except Exception as e:
+        print(f"⚠️ Failed to post PR comment: {e}")
 
     # Save suggestions for GitHub summary
     with open("suggestions.md", "w", encoding="utf-8") as f:
+        f.write("## 🤖 AI Code Suggestions\n\n")
         f.write(body)
+elif quota_exceeded:
+    with open("suggestions.md", "w", encoding="utf-8") as f:
+        f.write("⚠️ OpenAI quota exceeded. Could not analyze all files.")
 else:
     with open("suggestions.md", "w", encoding="utf-8") as f:
         f.write("✅ No AI suggestions. Your code looks good!")
