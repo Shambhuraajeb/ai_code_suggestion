@@ -34,7 +34,6 @@ comments = []
 # Analyze each file change
 for file in files:
     print(f"Processing file: {file.filename}")  # Debug log for filename
-    # Truncate patch if it exceeds 3000 characters to avoid token limit issues
     patch = file.patch if len(file.patch) <= 3000 else file.patch[:3000] + "\n... [truncated]"
     print(f"Patch for {file.filename}:\n{patch}")  # Debug log for patch content
 
@@ -47,19 +46,20 @@ for file in files:
     """
 
     try:
-        # Updated API call for openai>=1.0.0
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
+        # ✅ New API call for openai>=1.0.0
+        response = openai.chat.completions.create(
+            model="gpt-4o-mini",  # can also use "gpt-4o", "gpt-4.1", etc.
             messages=[
                 {"role": "system", "content": "You are a senior code reviewer."},
                 {"role": "user", "content": prompt},
             ],
             max_tokens=400,
         )
-        suggestion = response["choices"][0]["message"]["content"]
-        print(f"Suggestion for {file.filename}:\n{suggestion}")  # Debug log for suggestion
+        suggestion = response.choices[0].message.content
+        print(f"Suggestion for {file.filename}:\n{suggestion}")
         comments.append(f"### 💡 AI Suggestion for `{file.filename}`\n{suggestion}")
-    except openai.OpenAIError as e:  # Corrected exception handling
+
+    except openai.APIError as e:  # Correct exception for new SDK
         print(f"⚠️ OpenAI API error analyzing `{file.filename}`: {e}")
     except Exception as e:
         print(f"⚠️ Unexpected error analyzing `{file.filename}`: {e}")
@@ -69,11 +69,10 @@ if comments:
     body = "\n\n".join(comments)
     try:
         print("Posting the following comment to the PR:")
-        print(body)  # Debug log to verify the comment content
+        print(body)
         pr.create_issue_comment(body)
-        print("Comment successfully posted to the PR.")  # Log success
+        print("Comment successfully posted to the PR.")
     except Exception as e:
         print(f"⚠️ Failed to post comment to the PR: {e}")
 else:
-    print("No comments to post.")
     print("No comments to post.")
