@@ -66,4 +66,13 @@ for file in files:
 # Post a single comment on PR
 if comments:
     body = "\n\n".join(comments)
-    pr.create_issue_comment(body)
+    try:
+        print("Posting the following comment to the PR:")
+        print(body)  # Debug log to verify the comment content
+        response = pr.create_issue_comment(body)
+        print(f"Comment successfully posted to the PR. Response: {response}")  # Log the API response
+    except Exception as e:
+        print(f"⚠️ Failed to post comment to the PR: {e}")
+        print("Ensure the GITHUB_TOKEN has write permissions and the PR is valid.")
+else:
+    print("No comments to post.")
