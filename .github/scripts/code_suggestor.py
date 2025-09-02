@@ -58,7 +58,7 @@ for file in files:
         suggestion = response["choices"][0]["message"]["content"]
         print(f"Suggestion for {file.filename}:\n{suggestion}")  # Debug log for suggestion
         comments.append(f"### 💡 AI Suggestion for `{file.filename}`\n{suggestion}")
-    except openai.error.OpenAIError as e:
+    except openai.OpenAIError as e:
         print(f"⚠️ OpenAI API error analyzing `{file.filename}`: {e}")
     except Exception as e:
         print(f"⚠️ Unexpected error analyzing `{file.filename}`: {e}")
@@ -69,11 +69,10 @@ if comments:
     try:
         print("Posting the following comment to the PR:")
         print(body)  # Debug log to verify the comment content
-        response = pr.create_issue_comment(body)
-        print(f"Comment successfully posted to the PR. Response: {response}")  # Log the API response
+        pr.create_issue_comment(body)
+        print("Comment successfully posted to the PR.")  # Log success
     except Exception as e:
         print(f"⚠️ Failed to post comment to the PR: {e}")
-        print("Ensure the GITHUB_TOKEN has write permissions and the PR is valid.")
 else:
     print("No comments to post.")
-    print("Ensure the GITHUB_TOKEN has write permissions and the PR is valid.")
+    print("No comments to post.")
