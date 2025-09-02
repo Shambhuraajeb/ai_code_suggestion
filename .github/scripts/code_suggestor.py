@@ -58,10 +58,8 @@ for file in files:
         suggestion = response["choices"][0]["message"]["content"]
         print(f"Suggestion for {file.filename}:\n{suggestion}")  # Debug log for suggestion
         comments.append(f"### 💡 AI Suggestion for `{file.filename}`\n{suggestion}")
-    except openai.error.OpenAIError as e:
-        print(f"⚠️ OpenAI API error analyzing `{file.filename}`: {e}")
     except Exception as e:
-        print(f"⚠️ Unexpected error analyzing `{file.filename}`: {e}")
+        print(f"⚠️ Error analyzing `{file.filename}`: {e}")
 
 # Post a single comment on PR
 if comments:
